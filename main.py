@@ -14,7 +14,7 @@ def get_token():
     return token_response.json()
 
 
-def get_product():
+def get_all_product():
     authentication_data = get_token()
     access_token = authentication_data['access_token']
     headers = {
@@ -22,7 +22,19 @@ def get_product():
         'Content-Type': 'application/json',
     }
     product_response = requests.get('https://api.moltin.com/pcm/products/', headers=headers)
-    print(product_response.json())
+    return product_response.json()
+
+
+def get_product(id_product):
+    authentication_data = get_token()
+    access_token = authentication_data['access_token']
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json',
+    }
+    url = 'https://api.moltin.com/catalog/products/'
+    product_response = requests.get(url+str(id_product), headers=headers)
+    print(product_response.content)
     return product_response.json()
 
 
@@ -70,5 +82,5 @@ def main():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    get_product()
+    get_product('d13b8eff-6cc9-4ca3-b17b-0d54bcd9bf03')
 

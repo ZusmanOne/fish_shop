@@ -3,23 +3,20 @@ from telegram import (ReplyKeyboardMarkup,InlineKeyboardButton, InlineKeyboardMa
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, RegexHandler,
                           ConversationHandler,CallbackQueryHandler)
 import redis
-from main import get_token,get_product
+from main import get_token,get_all_product,get_product
 
 _database = None
-
+import sys
 
 
 def start(bot, update):
-    serialize_product = get_product()
+    serialize_products = get_all_product()
     keyboard = []
-    for i in serialize_product['data']:
+    for i in serialize_products['data']:
+        fish_info = i['attributes']
         keyboard.append(
             [InlineKeyboardButton(i['attributes']['name'], callback_data=i['id'])]
         )
-
-    #keyboard = [[InlineKeyboardButton("Option 1", callback_data='1'),
-     #            InlineKeyboardButton("Option 2", callback_data='2')],
-     #           [InlineKeyboardButton("Option 3", callback_data='3')]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
     return "ECHO"
@@ -27,8 +24,9 @@ def start(bot, update):
 
 def button(bot,update):
     query = update.callback_query
-    print(query.data)
-    bot.edit_message_text(text=f'Fish number is {query.data}',
+    serializer_product = get_product(query.data)
+    bot.edit_message_text(text=f"{serializer_product['data']['attributes']['name']}\n"
+                               f"{serializer_product['data']['attributes']['price']['USD']['amount']/10}$",
                           chat_id=query.message.chat_id,
                           message_id=query.message.message_id)
 
