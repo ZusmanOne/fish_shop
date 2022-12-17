@@ -9,26 +9,29 @@ _database = None
 import sys
 
 
+
 def start(bot, update):
+    #print('Запускаю все продукты')
     serialize_products = get_all_product()
     keyboard = []
     for i in serialize_products['data']:
-        fish_info = i['attributes']
         keyboard.append(
-            [InlineKeyboardButton(i['attributes']['name'], callback_data=i['id'])]
+            [InlineKeyboardButton(i['name'], callback_data=i['id'])]
         )
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
-    return "ECHO"
+    return "HANDLE_MENU"
 
 
-def button(bot,update):
+def handle_menu(bot,update):
     query = update.callback_query
     serializer_product = get_product(query.data)
-    bot.edit_message_text(text=f"{serializer_product['data']['attributes']['name']}\n"
-                               f"{serializer_product['data']['attributes']['price']['USD']['amount']/10}$",
+    bot.edit_message_text(text=f"{serializer_product['data']['name']}\n"
+                               f"{serializer_product['data']['description']}\n"
+                               f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",
                           chat_id=query.message.chat_id,
                           message_id=query.message.message_id)
+    return 'START'
 
 
 def echo(bot, update):
@@ -53,7 +56,8 @@ def handle_users_reply(bot,update):
         user_state = db.get(chat_id).decode("utf-8")
     states_functions = {
         'START': start,
-        'ECHO': echo
+        'ECHO': echo,
+        'HANDLE_MENU':handle_menu,
     }
     state_handler = states_functions[user_state]
     try:
@@ -82,12 +86,13 @@ if __name__ == '__main__':
     env = Env()
     env.read_env()
     token = env("TG_TOKEN")
+    client_id = env('CLIENT_ID')
+    client_secret = env('CLIENT_SECRET')
     updater = Updater(token)
     dispatcher = updater.dispatcher
-    updater.dispatcher.add_handler(CallbackQueryHandler(button))
+    updater.dispatcher.add_handler(CallbackQueryHandler(handle_menu))
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
-
     updater.start_polling()
 
