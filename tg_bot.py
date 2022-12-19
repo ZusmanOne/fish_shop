@@ -4,14 +4,14 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, Rege
                           ConversationHandler,CallbackQueryHandler)
 import redis
 from main import get_token,get_all_product,get_product
+import sys
+
 
 _database = None
-import sys
 
 
 
 def start(bot, update):
-    #print('Запускаю все продукты')
     serialize_products = get_all_product()
     keyboard = []
     for i in serialize_products['data']:
@@ -20,29 +20,40 @@ def start(bot, update):
         )
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
-
     return "HANDLE_MENU"
 
 
 def handle_menu(bot,update):
+    keyboard = [[InlineKeyboardButton("Назад к рыбам", callback_data='back')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     query = update.callback_query
     serializer_product = get_product(query.data)
     id_file_product = serializer_product['data']['relationships']['files']['data'][0]['id']
-    print(update.callback_query.message.message_id)
-
-    # bot.edit_message_text(text=f"{serializer_product['data']['name']}\n"
-    #                            f"{serializer_product['data']['description']}\n"
-    #                            f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",
-    #                       chat_id=query.message.chat_id,
-    #                       message_id=query.message.message_id)
     bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{id_file_product}.jpg','rb'),
-     caption=f"{serializer_product['data']['name']}\n"
-                               f"{serializer_product['data']['description']}\n"
-                               f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",)
+    caption=f"{serializer_product['data']['name']}\n"
+            f"{serializer_product['data']['description']}\n"
+            f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",
+                   reply_markup=reply_markup)
     bot.delete_message(chat_id=query.message.chat_id,
                        message_id=update.callback_query.message.message_id,)
-    return 'START'
 
+    return 'HANDLE_DESCRIPTION'
+
+
+def handle_description(bot,update):
+    query = update.callback_query
+    serialize_products = get_all_product()
+    keyboard = []
+    for i in serialize_products['data']:
+        keyboard.append(
+            [InlineKeyboardButton(i['name'], callback_data=i['id'])]
+        )
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    bot.send_message(text="Selected option:",
+                          chat_id=query.message.chat_id,
+                          message_id=query.message.message_id,
+                     reply_markup=reply_markup)
+    return "HANDLE_MENU"
 
 
 
@@ -60,6 +71,7 @@ def handle_users_reply(bot,update):
         user_reply = update.message.text
         chat_id = update.message.chat_id
     elif update.callback_query:
+        #print(update.callback_query.data)
         user_reply = update.callback_query.data
         chat_id = update.callback_query.message.chat_id
     else:
@@ -72,12 +84,12 @@ def handle_users_reply(bot,update):
         'START': start,
         'ECHO': echo,
         'HANDLE_MENU':handle_menu,
+        'HANDLE_DESCRIPTION':handle_description,
     }
     state_handler = states_functions[user_state]
     try:
         next_state = state_handler(bot, update)
         db.set(chat_id, next_state)
-        #print(db.set(chat_id, next_state))
     except Exception as err:
         print(err)
 
@@ -104,9 +116,9 @@ if __name__ == '__main__':
     client_secret = env('CLIENT_SECRET')
     updater = Updater(token)
     dispatcher = updater.dispatcher
-    updater.dispatcher.add_handler(CallbackQueryHandler(handle_menu))
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
+
     updater.start_polling()
 
