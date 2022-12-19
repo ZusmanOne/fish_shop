@@ -20,18 +20,32 @@ def start(bot, update):
         )
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text('Please choose:', reply_markup=reply_markup)
+
     return "HANDLE_MENU"
 
 
 def handle_menu(bot,update):
     query = update.callback_query
     serializer_product = get_product(query.data)
-    bot.edit_message_text(text=f"{serializer_product['data']['name']}\n"
+    id_file_product = serializer_product['data']['relationships']['files']['data'][0]['id']
+    print(update.callback_query.message.message_id)
+
+    # bot.edit_message_text(text=f"{serializer_product['data']['name']}\n"
+    #                            f"{serializer_product['data']['description']}\n"
+    #                            f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",
+    #                       chat_id=query.message.chat_id,
+    #                       message_id=query.message.message_id)
+    bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{id_file_product}.jpg','rb'),
+     caption=f"{serializer_product['data']['name']}\n"
                                f"{serializer_product['data']['description']}\n"
-                               f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",
-                          chat_id=query.message.chat_id,
-                          message_id=query.message.message_id)
+                               f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",)
+    bot.delete_message(chat_id=query.message.chat_id,
+                       message_id=update.callback_query.message.message_id,)
     return 'START'
+
+
+
+
 
 
 def echo(bot, update):

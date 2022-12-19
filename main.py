@@ -8,6 +8,7 @@ env.read_env()
 CLIENT_ID = env('CLIENT_ID')
 CLIENT_SECRET = env('CLIENT_SECRET')
 
+
 def get_token():
 
     data = {
@@ -16,34 +17,47 @@ def get_token():
         'grant_type': 'client_credentials',
     }
     token_response = requests.post('https://api.moltin.com/oauth/access_token', data=data)
-    #expires_token = token_response.json()['expires']
-    #print(token_response.json())
-    return token_response.json()
+    access_token = token_response.json()['access_token']
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+    }
+    return headers
 
 
 def get_all_product():
-    authentication_data = get_token()
-    access_token = authentication_data['access_token']
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
-    }
+    headers = get_token()
     product_response = requests.get('https://api.moltin.com/v2/products', headers=headers)
     # print(product_response.json())
     return product_response.json()
 
 
 def get_product(id_product):
-    authentication_data = get_token()
-    access_token = authentication_data['access_token']
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
-    }
+    headers = get_token()
     url = 'https://api.moltin.com/v2/products/'
     product_response = requests.get(url+str(id_product), headers=headers)
-    #print(product_response.content)
+    #print(product_response.json()['data']['relationships']['files']['data'][0]['id'])
+    # print(product_response.json())
     return product_response.json()
+
+
+def get_id_file(id_product):
+    headers = get_token()
+    url = 'https://api.moltin.com/v2/products/'
+    product_response = requests.get(url+str(id_product), headers=headers)
+    id_file = product_response.json()['data']['relationships']['files']['data'][0]['id']
+    # print(id_file)
+    return id_file
+
+
+def download_file(id_product):
+    id_file = get_id_file(id_product)
+    headers = get_token()
+    file_response = requests.get(f'https://api.moltin.com/v2/files/{id_file}',headers=headers)
+    url_image = file_response.json()['data']['link']['href']
+    download_response = requests.get(url_image)
+    with open(f'fish/{id_file}.jpg','wb') as file:
+        file.write(download_response.content)
+    # print(url_image)
 
 
 def get_cart():
@@ -52,10 +66,96 @@ def get_cart():
         'Authorization': f'Bearer 0949b84e34ea992b9af450a7849faebd858c1441',
     }
     cart_response = requests.get(cart_url,headers=headers)
-    print(cart_response.json())
+    # print(cart_response.json())
+
+
+def get_all_files():
+    headers = get_token()
+    response_files = requests.get('https://api.moltin.com/v2/files', headers=headers)
+    # print(response_files.json())
+
+
+
+
+# def get_file_product():
+#     headers = get_token()
+#     bind_response = requests.get(
+#         'https://api.moltin.com/v2/products/805755e7-892a-4527-b122-c230bfc728ae/relationships/files', headers=headers)
+#     print(id_file = bind_response.json()['relationships'])
+#     return bind_response.json()
+
+# def download_file():
+#     headers = get_token()
+#     file_id =
+
+
+def create_file_product():
+    headers = get_token()
+    data = {
+        'data':{
+            'file_name':'123'
+
+        }
+
+    }
+    files = {
+        'file_location': (None, 'https://fermaspb.ru/uploads/gallery/15549806505caf1f2a825bb.jpg'),
+    }
+
+    file_response = requests.post('https://api.moltin.com/v2/files', json=data, headers=headers, files=files)
+    # print(file_response.status_code)
+    # print(file_response.json())
+    #file_response.raise_for_status()
+    id_file = file_response.json()['data']['id']
+    # print(id_file)
+    return id_file
+
+
+def bind_product_image(id_product):
+    id_file = create_file_product()
+    headers = get_token()
+    json_data = {
+        'data': [
+            {
+                'type': 'file',
+                'id': id_file,
+            },
+
+            ],
+             }
+    # product_id =
+    bind_response = requests.post(f'https://api.moltin.com/v2/products/{id_product}/relationships/files', headers=headers,
+                             json=json_data)
+    # print(bind_response.status_code)
+    # print(bind_response.json())
+
+
+def delete_image_relationship(id_product):
+    id_file = get_id_file(id_product)
+    headers = get_token()
+    json_data = {
+        'data': [
+            {
+                "type": "main_image",
+                'id': id_file,
+            },
+
+            ],
+             }
+    # product_id =
+    bind_response = requests.delete(f'https://api.moltin.com/v2/products/{id_product}/relationships/files', headers=headers,
+                             json=json_data)
+    # print(bind_response.status_code)
+    # print(bind_response.json())
+
+
+def delete_image(id_image):
+    headers = get_token()
+    response = requests.delete(f'https://api.moltin.com/v2/files/{id_image}', headers=headers)
+    # print(response.status_code)
+
 
 def main():
-
     print(access_token)
     env = Env()
     env.read_env()
@@ -86,26 +186,23 @@ def main():
     # #add_cart_response = requests.post('https://api.moltin.com/v2/carts/746f3d6b-5ee5-4200-8310-6733c72178c6/items', headers=headers, json=product_data)
     # print(cart_response.status_code)
     # print(cart_response.json())
+
+
 def create_product():
-    authentication_data = get_token()
-    access_token = authentication_data['access_token']
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
-        }
+    headers = get_token()
     url = 'https://api.moltin.com/v2/products'
     data = {
         'data':
             {
                 "type": "product",
-                "name": "Red Fish",
-                "slug": "red-fish",
-                "sku": "4",
-                "description": "прямиком из мурманска",
+                "name": "Камчатский краб",
+                "slug": "crab",
+                "sku": "5",
+                "description": "прямиком с камчатки",
                 "manage_stock": True,
                 "price": [
                     {
-                        "amount": 700,
+                        "amount": 900,
                         "currency": "USD",
                         "includes_tax": True
                     }
@@ -115,8 +212,8 @@ def create_product():
             }
         }
     create_response = requests.post(url, headers=headers, json=data)
-    print(create_response.status_code)
-    print(create_response.content)
+    # print(create_response.status_code)
+    # print(create_response.content)
 
 
 # Press the green button in the gutter to run the script.
@@ -125,8 +222,16 @@ if __name__ == '__main__':
     env.read_env()
     client_id = env('CLIENT_ID')
     client_secret = env('CLIENT_SECRET')
-    get_token()
-    # get_product('d13b8eff-6cc9-4ca3-b17b-0d54bcd9bf03')
+    #create_file_product()
+    #get_product('805755e7-892a-4527-b122-c230bfc728ae')
     #get_product('49212a9f-df95-4b7b-93e0-b5cca63114fb')
     # create_product()
-
+    # create_product()
+    #get_all_product()
+    #get_all_files()
+    #bind_product_image('805755e7-892a-4527-b122-c230bfc728ae')
+    # get_file_product()
+    #get_id_file('49212a9f-df95-4b7b-93e0-b5cca63114fb')
+    download_file('805755e7-892a-4527-b122-c230bfc728ae')
+    #delete_image_relationship('49212a9f-df95-4b7b-93e0-b5cca63114fb')
+    #delete_image('dc40a640-222b-46e2-82bc-13514c9c1988')
