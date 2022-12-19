@@ -27,7 +27,7 @@ def get_token():
 def get_all_product():
     headers = get_token()
     product_response = requests.get('https://api.moltin.com/v2/products', headers=headers)
-    # print(product_response.json())
+    #print(product_response.json())
     return product_response.json()
 
 
@@ -35,8 +35,7 @@ def get_product(id_product):
     headers = get_token()
     url = 'https://api.moltin.com/v2/products/'
     product_response = requests.get(url+str(id_product), headers=headers)
-    #print(product_response.json()['data']['relationships']['files']['data'][0]['id'])
-    # print(product_response.json())
+    #print(product_response.json())
     return product_response.json()
 
 
@@ -45,7 +44,6 @@ def get_id_file(id_product):
     url = 'https://api.moltin.com/v2/products/'
     product_response = requests.get(url+str(id_product), headers=headers)
     id_file = product_response.json()['data']['relationships']['files']['data'][0]['id']
-    # print(id_file)
     return id_file
 
 
@@ -57,16 +55,13 @@ def download_file(id_product):
     download_response = requests.get(url_image)
     with open(f'fish/{id_file}.jpg','wb') as file:
         file.write(download_response.content)
-    # print(url_image)
 
 
-def get_cart():
-    cart_url = 'https://api.moltin.com/v2/carts/:reference'
-    headers = {
-        'Authorization': f'Bearer 0949b84e34ea992b9af450a7849faebd858c1441',
-    }
-    cart_response = requests.get(cart_url,headers=headers)
-    # print(cart_response.json())
+def get_cart(id_cart):
+    cart_url = f'https://api.moltin.com/v2/carts/{id_cart}'
+    headers = get_token()
+    cart_response = requests.get(cart_url, headers=headers)
+    print(cart_response.json())
 
 
 def get_all_files():
@@ -155,6 +150,21 @@ def delete_image(id_image):
     # print(response.status_code)
 
 
+def add_product_cart(id_product,quantity):
+    headers = get_token()
+    product_data = {
+        'data':
+            {
+                "id": id_product,
+                "type": 'cart_item',
+                "quantity": quantity
+            }
+    }
+    add_cart_response = requests.post(f'https://api.moltin.com/v2/carts/c56089fe-6d36-4f6e-9686-9cbac5389bc3/items', headers=headers,
+                                      json=product_data)
+    print(add_cart_response.status_code)
+    print(add_cart_response.json())
+
 def main():
     print(access_token)
     env = Env()
@@ -188,18 +198,19 @@ def main():
     # print(cart_response.json())
 
 
-def create_product():
+def create_product(id_product):
     headers = get_token()
-    url = 'https://api.moltin.com/v2/products'
+    url = f'https://api.moltin.com/v2/products/{id_product}'
     data = {
         'data':
             {
+                "id": id_product,
                 "type": "product",
                 "name": "Камчатский краб",
                 "slug": "crab",
                 "sku": "5",
                 "description": "прямиком с камчатки",
-                "manage_stock": True,
+                "manage_stock": False,
                 "price": [
                     {
                         "amount": 900,
@@ -208,13 +219,47 @@ def create_product():
                     }
                 ],
                 "status": "live",
-                "commodity_type": "physical"
+                "commodity_type": "physical",
+                "meta" : {
+                    "stock": {
+                        "level": 1,
+                        "availability": "out-stock"
+                    }
+                }
             }
         }
-    create_response = requests.post(url, headers=headers, json=data)
-    # print(create_response.status_code)
-    # print(create_response.content)
+    create_response = requests.put(url, headers=headers, json=data)
+    print(create_response.status_code)
+    print(create_response.json())
 
+
+def create_inventory(id_product):
+    headers = get_token()
+    data = {
+        'data': {
+            'type': 'stock-transaction',
+            'action': 'increment',
+            'quantity': 2100,
+        },
+    }
+    response = requests.post(f'https://api.moltin.com/v2/inventories/{id_product}/transactions', headers=headers,json=data)
+    print(response.json())
+    print(response.status_code)
+
+
+def create_cart():
+    headers = get_token()
+    data = {
+        'data':
+            {
+            "name": "Fish Cart",
+            "description": "For Fish",
+        }
+
+    }
+    response = requests.post('https://api.moltin.com/v2/carts',headers=headers,json=data)
+    response.raise_for_status()
+    print(response.json())
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -224,14 +269,18 @@ if __name__ == '__main__':
     client_secret = env('CLIENT_SECRET')
     #create_file_product()
     #get_product('805755e7-892a-4527-b122-c230bfc728ae')
-    #get_product('49212a9f-df95-4b7b-93e0-b5cca63114fb')
-    # create_product()
+    #get_product('98b4bc7d-660c-4baa-bab1-486ad0d9bfbe')
+    #create_product('98b4bc7d-660c-4baa-bab1-486ad0d9bfbe')
     # create_product()
     #get_all_product()
     #get_all_files()
     #bind_product_image('805755e7-892a-4527-b122-c230bfc728ae')
     # get_file_product()
     #get_id_file('49212a9f-df95-4b7b-93e0-b5cca63114fb')
-    download_file('805755e7-892a-4527-b122-c230bfc728ae')
+    #download_file('805755e7-892a-4527-b122-c230bfc728ae')
     #delete_image_relationship('49212a9f-df95-4b7b-93e0-b5cca63114fb')
     #delete_image('dc40a640-222b-46e2-82bc-13514c9c1988')
+    get_cart('c56089fe-6d36-4f6e-9686-9cbac5389bc3')
+    # add_product_cart('805755e7-892a-4527-b122-c230bfc728ae')
+    #create_inventory('49212a9f-df95-4b7b-93e0-b5cca63114fb')
+    #create_cart()

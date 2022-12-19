@@ -3,7 +3,7 @@ from telegram import (ReplyKeyboardMarkup,InlineKeyboardButton, InlineKeyboardMa
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, RegexHandler,
                           ConversationHandler,CallbackQueryHandler)
 import redis
-from main import get_token,get_all_product,get_product
+from main import get_token,get_all_product,get_product,add_product_cart
 import sys
 
 
@@ -24,9 +24,15 @@ def start(bot, update):
 
 
 def handle_menu(bot,update):
-    keyboard = [[InlineKeyboardButton("Назад к рыбам", callback_data='back')]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     query = update.callback_query
+    print(query.data)
+    keyboard = [[InlineKeyboardButton("1 кг", callback_data=f'{query.data}*1'),
+                 InlineKeyboardButton("5 кг", callback_data=f'{query.data}*5'),
+                 InlineKeyboardButton("10 кг", callback_data=f'{query.data}*10')],
+                [InlineKeyboardButton("Назад к рыбам", callback_data='back')]]
+
+    #keyboard = [[InlineKeyboardButton("Назад к рыбам", callback_data='back')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     serializer_product = get_product(query.data)
     id_file_product = serializer_product['data']['relationships']['files']['data'][0]['id']
     bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{id_file_product}.jpg','rb'),
@@ -42,18 +48,25 @@ def handle_menu(bot,update):
 
 def handle_description(bot,update):
     query = update.callback_query
-    serialize_products = get_all_product()
-    keyboard = []
-    for i in serialize_products['data']:
-        keyboard.append(
-            [InlineKeyboardButton(i['name'], callback_data=i['id'])]
-        )
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    bot.send_message(text="Selected option:",
-                          chat_id=query.message.chat_id,
-                          message_id=query.message.message_id,
-                     reply_markup=reply_markup)
-    return "HANDLE_MENU"
+    query_data = query.data
+    if query.data == 'back':
+        serialize_products = get_all_product()
+        keyboard = []
+        for i in serialize_products['data']:
+            keyboard.append(
+                [InlineKeyboardButton(i['name'], callback_data=i['id'])]
+            )
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text="Selected option:",
+                              chat_id=query.message.chat_id,
+                              message_id=query.message.message_id,
+                         reply_markup=reply_markup)
+        return "HANDLE_MENU"
+    else:
+        product,quantity = query_data.split('*')
+        add_product_cart(product,int(quantity))
+       
+    # if query.data == '1':
 
 
 
