@@ -61,7 +61,16 @@ def get_cart(id_cart):
     cart_url = f'https://api.moltin.com/v2/carts/{id_cart}'
     headers = get_token()
     cart_response = requests.get(cart_url, headers=headers)
-    print(cart_response.json())
+    #print(cart_response.json())
+    return cart_response.json()
+
+
+def get_cart_items(id_cart):
+    cart_url = f'https://api.moltin.com/v2/carts/{id_cart}/items'
+    headers = get_token()
+    cart_response = requests.get(cart_url, headers=headers)
+    #print(cart_response.json())
+    return cart_response.json()
 
 
 def get_all_files():
@@ -150,7 +159,7 @@ def delete_image(id_image):
     # print(response.status_code)
 
 
-def add_product_cart(id_product,quantity):
+def add_product_cart(id_cart,id_product,quantity):
     headers = get_token()
     product_data = {
         'data':
@@ -160,10 +169,10 @@ def add_product_cart(id_product,quantity):
                 "quantity": quantity
             }
     }
-    add_cart_response = requests.post(f'https://api.moltin.com/v2/carts/c56089fe-6d36-4f6e-9686-9cbac5389bc3/items', headers=headers,
+    add_cart_response = requests.post(f'https://api.moltin.com/v2/carts/{id_cart}/items', headers=headers,
                                       json=product_data)
     print(add_cart_response.status_code)
-    print(add_cart_response.json())
+    #print(add_cart_response.json())
 
 def main():
     print(access_token)
@@ -247,12 +256,13 @@ def create_inventory(id_product):
     print(response.status_code)
 
 
-def create_cart():
+def create_cart(chat_id):
     headers = get_token()
     data = {
         'data':
             {
             "name": "Fish Cart",
+            "id" : str(chat_id),
             "description": "For Fish",
         }
 
@@ -260,6 +270,12 @@ def create_cart():
     response = requests.post('https://api.moltin.com/v2/carts',headers=headers,json=data)
     response.raise_for_status()
     print(response.json())
+
+def delete_cart(id_cart):
+    headers = get_token()
+    response = requests.delete(f'https://api.moltin.com/v2/carts/{id_cart}', headers=headers)
+    print(response.status_code)
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -280,7 +296,8 @@ if __name__ == '__main__':
     #download_file('805755e7-892a-4527-b122-c230bfc728ae')
     #delete_image_relationship('49212a9f-df95-4b7b-93e0-b5cca63114fb')
     #delete_image('dc40a640-222b-46e2-82bc-13514c9c1988')
-    get_cart('c56089fe-6d36-4f6e-9686-9cbac5389bc3')
+    #get_cart('305151571')
     # add_product_cart('805755e7-892a-4527-b122-c230bfc728ae')
     #create_inventory('49212a9f-df95-4b7b-93e0-b5cca63114fb')
-    #create_cart()
+    #create_cart(305151573)
+    delete_cart(305151573)
