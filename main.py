@@ -1,6 +1,5 @@
 import requests
 from environs import Env
-from datetime import datetime
 
 
 env = Env()
@@ -50,11 +49,11 @@ def get_id_file(id_product):
 def download_file(id_product):
     id_file = get_id_file(id_product)
     headers = get_token()
-    file_response = requests.get(f'https://api.moltin.com/v2/files/{id_file}',headers=headers)
+    file_response = requests.get(f'https://api.moltin.com/v2/files/{id_file}', headers=headers)
     file_response.raise_for_status()
     url_image = file_response.json()['data']['link']['href']
     download_response = requests.get(url_image)
-    with open(f'fish/{id_file}.jpg','wb') as file:
+    with open(f'fish/{id_file}.jpg', 'wb') as file:
         file.write(download_response.content)
 
 
@@ -74,7 +73,7 @@ def get_cart_items(id_cart):
     return response.json()
 
 
-def delete_cart_item(cart_id,item_id):
+def delete_cart_item(cart_id, item_id):
     headers = get_token()
     response = requests.delete(f'https://api.moltin.com/v2/carts/{cart_id}/items/{item_id}', headers=headers)
     response.raise_for_status()
@@ -86,16 +85,13 @@ def get_all_files():
     response.raise_for_status()
 
 
-
-
 def create_file_product():
     headers = get_token()
     data = {
-        'data':{
-            'file_name':'123'
-
-        }
-
+        'data':
+            {
+                'file_name': '123'
+            }
     }
     files = {
         'file_location': (None, 'https://fermaspb.ru/uploads/gallery/15549806505caf1f2a825bb.jpg'),
@@ -120,8 +116,8 @@ def bind_product_image(id_product):
 
             ],
              }
-    bind_response = requests.post(f'https://api.moltin.com/v2/products/{id_product}/relationships/files', headers=headers,
-                             json=json_data)
+    bind_response = requests.post(f'https://api.moltin.com/v2/products/{id_product}/relationships/files',
+                                  headers=headers, json=json_data)
     bind_response.raise_for_status()
 
 
@@ -138,7 +134,7 @@ def delete_image_relationship(id_product):
             ],
              }
     response = requests.delete(f'https://api.moltin.com/v2/products/{id_product}/relationships/files', headers=headers,
-                             json=json_data)
+                               json=json_data)
     response.raise_for_status()
 
 
@@ -148,7 +144,7 @@ def delete_image(id_image):
     response.raise_for_status()
 
 
-def add_product_cart(id_cart,id_product,quantity):
+def add_product_cart(id_cart, id_product, quantity):
     headers = get_token()
     product_data = {
         'data':
@@ -163,7 +159,6 @@ def add_product_cart(id_cart,id_product,quantity):
     add_cart_response.raise_for_status()
 
 
-
 def create_product(id_product):
     headers = get_token()
     url = f'https://api.moltin.com/v2/products/{id_product}'
@@ -172,14 +167,14 @@ def create_product(id_product):
             {
                 "id": id_product,
                 "type": "product",
-                "name": "Камчатский краб",
-                "slug": "crab",
-                "sku": "5",
-                "description": "прямиком с камчатки",
+                "name": "Судак",
+                "slug": "sudak",
+                "sku": "3",
+                "description": "Самый лучший судак, когда либо пойманный",
                 "manage_stock": False,
                 "price": [
                     {
-                        "amount": 900,
+                        "amount": 589,
                         "currency": "USD",
                         "includes_tax": True
                     }
@@ -207,7 +202,8 @@ def create_inventory(id_product):
             'quantity': 2100,
         },
     }
-    response = requests.post(f'https://api.moltin.com/v2/inventories/{id_product}/transactions', headers=headers,json=data)
+    response = requests.post(f'https://api.moltin.com/v2/inventories/{id_product}/transactions', headers=headers,
+                             json=data)
     response.raise_for_status()
 
 
@@ -216,15 +212,13 @@ def create_cart(chat_id):
     data = {
         'data':
             {
-            "name": "Fish Cart",
-            "id" : str(chat_id),
-            "description": "For Fish",
-        }
-
+                "name": "Fish Cart",
+                "id": str(chat_id),
+                "description": "For Fish",
+            }
     }
-    response = requests.post('https://api.moltin.com/v2/carts',headers=headers,json=data)
+    response = requests.post('https://api.moltin.com/v2/carts', headers=headers, json=data)
     response.raise_for_status()
-
 
 
 def delete_cart(id_cart):
@@ -252,3 +246,4 @@ if __name__ == '__main__':
     env.read_env()
     client_id = env('CLIENT_ID')
     client_secret = env('CLIENT_SECRET')
+    get_all_product()

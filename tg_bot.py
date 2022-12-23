@@ -1,19 +1,17 @@
 from environs import Env
-from telegram import (InlineKeyboardButton, InlineKeyboardMarkup,)
+from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, )
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           CallbackQueryHandler)
 import redis
-from main import (get_all_product, get_product,add_product_cart,get_cart,
+from main import (get_all_product, get_product, add_product_cart, get_cart,
                   get_cart_items, delete_cart_item, create_customers)
-
-
 
 _database = None
 
 
 def start(bot, update):
     serialize_products = get_all_product()
-    keyboard = [[InlineKeyboardButton("Корзина", callback_data='Корзина'),]]
+    keyboard = [[InlineKeyboardButton("Корзина", callback_data='Корзина')]]
     for i in serialize_products['data']:
         keyboard.append(
             [InlineKeyboardButton(i['name'], callback_data=i['id'])]
@@ -23,12 +21,13 @@ def start(bot, update):
     return "HANDLE_MENU"
 
 
-def handle_menu(bot,update):
+def handle_menu(bot, update):
+    print('handle_menu')
     query = update.callback_query
     if query.data == 'Корзина':
         chat_id = query.message.chat_id
         cart_items = get_cart_items(chat_id)
-        keyboard = [([InlineKeyboardButton(f"Удалить {product_item['name']}", callback_data=product_item['id']),])
+        keyboard = [([InlineKeyboardButton(f"Удалить {product_item['name']}", callback_data=product_item['id'])])
                     for product_item in cart_items['data']]
         keyboard.append([InlineKeyboardButton("Назад к рыбам", callback_data='back')])
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -52,22 +51,23 @@ def handle_menu(bot,update):
                  InlineKeyboardButton("5 кг", callback_data=f'{query.data}*5'),
                  InlineKeyboardButton("10 кг", callback_data=f'{query.data}*10')],
                 [InlineKeyboardButton("Назад к рыбам", callback_data='back')],
-                [InlineKeyboardButton("Корзина", callback_data='Корзина'),]]
+                [InlineKeyboardButton("Корзина", callback_data='Корзина'), ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     serializer_product = get_product(query.data)
     id_file_product = serializer_product['data']['relationships']['files']['data'][0]['id']
-    bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{id_file_product}.jpg','rb'),
-    caption=f"{serializer_product['data']['name']}\n"
-            f"{serializer_product['data']['description']}\n"
-            f"{serializer_product['data']['price'][0]['amount']/10}$ - за хвост",
+    bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{id_file_product}.jpg', 'rb'),
+                   caption=f"{serializer_product['data']['name']}\n"
+                           f"{serializer_product['data']['description']}\n"
+                           f"{serializer_product['data']['price'][0]['amount'] / 10}$ - за хвост",
                    reply_markup=reply_markup)
     bot.delete_message(chat_id=query.message.chat_id,
-                       message_id=update.callback_query.message.message_id,)
+                       message_id=update.callback_query.message.message_id, )
 
     return 'HANDLE_DESCRIPTION'
 
 
-def handle_description(bot,update):
+def handle_description(bot, update):
+    print('handle_description')
     query = update.callback_query
     query_data = query.data
     chat_id = query.message.chat_id
@@ -101,25 +101,26 @@ def handle_description(bot,update):
             )
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(text="Selected option:",
-                              chat_id=chat_id,
-                              message_id=query.message.message_id,
+                         chat_id=chat_id,
+                         message_id=query.message.message_id,
                          reply_markup=reply_markup)
-        return "HANDLE_DESCRIPTION"
+        return "HANDLE_MENU"
     else:
         product, quantity = query_data.split('*')
         add_product_cart(chat_id, product, int(quantity))
         return "HANDLE_CART"
 
 
-def handle_cart(bot,update):
+def handle_cart(bot, update):
+    print('handle_description')
     query = update.callback_query
     chat_id = query.message.chat_id
-    id_item  = query.data
+    id_item = query.data
     if query.data == 'pay':
         bot.send_message(text="Напишите свою почту, мы вышлем счет",
                          chat_id=chat_id,
                          message_id=query.message.message_id,
-                        )
+                         )
         return 'WAITING_EMAIL'
     if query.data == 'back':
         serialize_products = get_all_product()
@@ -135,7 +136,7 @@ def handle_cart(bot,update):
                          reply_markup=reply_markup)
         return "HANDLE_MENU"
     else:
-        cart_items = delete_cart_item(chat_id, id_item)
+        delete_cart_item(chat_id, id_item)
         return 'HANDLE_CART'
 
 
@@ -147,7 +148,7 @@ def waiting_email(bot, update):
     return "START"
 
 
-def handle_users_reply(bot,update):
+def handle_users_reply(bot, update):
     db = get_database_connection()
     if update.message:
         user_reply = update.message.text
@@ -187,7 +188,7 @@ def get_database_connection():
                                       port=database_port,
                                       password=database_password,
                                       charset="utf-8",
-                                        )
+                                      )
     return _database
 
 
@@ -204,4 +205,3 @@ if __name__ == '__main__':
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
 
     updater.start_polling()
-
