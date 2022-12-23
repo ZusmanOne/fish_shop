@@ -1,10 +1,11 @@
 from environs import Env
-from telegram import (ReplyKeyboardMarkup,InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove)
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, RegexHandler,
-                          ConversationHandler,CallbackQueryHandler)
+from telegram import (InlineKeyboardButton, InlineKeyboardMarkup,)
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
+                          CallbackQueryHandler)
 import redis
-from main import get_token,get_all_product,get_product,add_product_cart,get_cart,create_cart,get_cart_items,delete_cart_item
-import sys
+from main import (get_all_product, get_product,add_product_cart,get_cart,
+                  get_cart_items, delete_cart_item, create_customers)
+
 
 
 _database = None
@@ -110,7 +111,6 @@ def handle_description(bot,update):
         return "HANDLE_CART"
 
 
-
 def handle_cart(bot,update):
     query = update.callback_query
     chat_id = query.message.chat_id
@@ -141,7 +141,9 @@ def handle_cart(bot,update):
 
 def waiting_email(bot, update):
     chat_id = update.message.chat_id
-    update.message.reply_text(f'Ваша почта {update.message.text}')
+    email_user = update.message.text
+    update.message.reply_text(f'Ваша почта {email_user}')
+    create_customers(email_user)
     return "START"
 
 
@@ -161,7 +163,6 @@ def handle_users_reply(bot,update):
         user_state = db.get(chat_id).decode("utf-8")
     states_functions = {
         'START': start,
-        # 'ECHO': echo,
         'HANDLE_MENU': handle_menu,
         'HANDLE_DESCRIPTION': handle_description,
         'HANDLE_CART': handle_cart,
