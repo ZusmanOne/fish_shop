@@ -9,6 +9,7 @@ def get_token(id_client, secret_client):
         'grant_type': 'client_credentials',
     }
     token_response = requests.post('https://api.moltin.com/oauth/access_token', data=data)
+    token_response.raise_for_status()
     access_token = token_response.json()['access_token']
     headers = {
         'Authorization': f'Bearer {access_token}',
@@ -19,6 +20,7 @@ def get_token(id_client, secret_client):
 def get_all_product(token):
     headers = token
     product_response = requests.get('https://api.moltin.com/v2/products', headers=headers)
+    product_response.raise_for_status()
     return product_response.json()
 
 
