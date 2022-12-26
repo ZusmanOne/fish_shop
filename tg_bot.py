@@ -3,8 +3,8 @@ from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, )
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           CallbackQueryHandler)
 import redis
-from main import (get_all_product, get_product, add_product_cart, get_cart,
-                  get_cart_items, delete_cart_item, create_customers,get_token)
+from api_moltin import (get_all_product, get_product, add_product_cart, get_cart,
+                        get_cart_items, delete_cart_item, create_customers, get_token)
 
 _database = None
 
@@ -54,8 +54,8 @@ def handle_menu(bot, update):
                 [InlineKeyboardButton("Корзина", callback_data='Корзина'), ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     serializer_product = get_product(query.data, authorization)
-    id_file_product = serializer_product['data']['relationships']['files']['data'][0]['id']
-    bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{id_file_product}.jpg', 'rb'),
+    file_product_id = serializer_product['data']['relationships']['files']['data'][0]['id']
+    bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{file_product_id}.jpg', 'rb'),
                    caption=f"{serializer_product['data']['name']}\n"
                            f"{serializer_product['data']['description']}\n"
                            f"{serializer_product['data']['price'][0]['amount'] / 10}$ - за хвост",
@@ -107,7 +107,7 @@ def handle_description(bot, update):
         return "HANDLE_MENU"
     else:
         product, quantity = query_data.split('*')
-        add_product_cart(chat_id, product, int(quantity),authorization)
+        add_product_cart(chat_id, product, int(quantity), authorization)
         return "HANDLE_CART"
 
 
@@ -115,7 +115,7 @@ def handle_cart(bot, update):
     print('handle_description')
     query = update.callback_query
     chat_id = query.message.chat_id
-    id_item = query.data
+    item_id = query.data
     if query.data == 'pay':
         bot.send_message(text="Напишите свою почту, мы вышлем счет",
                          chat_id=chat_id,
@@ -136,15 +136,15 @@ def handle_cart(bot, update):
                          reply_markup=reply_markup)
         return "HANDLE_MENU"
     else:
-        delete_cart_item(chat_id, id_item, authorization)
+        delete_cart_item(chat_id, item_id, authorization)
         return 'HANDLE_CART'
 
 
 def waiting_email(bot, update):
     chat_id = update.message.chat_id
-    email_user = update.message.text
-    update.message.reply_text(f'Ваша почта {email_user}')
-    create_customers(email_user, authorization)
+    user_email = update.message.text
+    update.message.reply_text(f'Ваша почта {user_email}')
+    create_customers(user_email, authorization)
     return "START"
 
 
@@ -198,13 +198,10 @@ if __name__ == '__main__':
     token = env("TG_TOKEN")
     client_id = env('CLIENT_ID')
     client_secret = env('CLIENT_SECRET')
-    CLIENT_ID = env('CLIENT_ID')
-    CLIENT_SECRET = env('CLIENT_SECRET')
     authorization = get_token(client_id, client_secret)
     updater = Updater(token)
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
-
     updater.start_polling()

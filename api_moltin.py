@@ -2,10 +2,11 @@ import requests
 from environs import Env
 
 
-def get_token(id_client, secret_client):
+
+def get_token(client_id, client_secret):
     data = {
-        'client_id': id_client,
-        'client_secret': secret_client,
+        'client_id': client_id,
+        'client_secret': client_secret,
         'grant_type': 'client_credentials',
     }
     token_response = requests.post('https://api.moltin.com/oauth/access_token', data=data)
@@ -14,7 +15,11 @@ def get_token(id_client, secret_client):
     headers = {
         'Authorization': f'Bearer {access_token}',
     }
+    print(token_response.json())
     return headers
+
+
+
 
 
 def get_all_product(token):
@@ -24,25 +29,25 @@ def get_all_product(token):
     return product_response.json()
 
 
-def get_product(id_product, token):
+def get_product(product_id, token):
     headers = token
     url = 'https://api.moltin.com/v2/products/'
-    response = requests.get(url+str(id_product), headers=headers)
+    response = requests.get(url+str(product_id), headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def get_id_file(id_product, token):
+def get_id_file(product_id, token):
     headers = token
     url = 'https://api.moltin.com/v2/products/'
-    response = requests.get(url+str(id_product), headers=headers)
+    response = requests.get(url+str(product_id), headers=headers)
     response.raise_for_status()
-    id_file = response.json()['data']['relationships']['files']['data'][0]['id']
-    return id_file
+    file_id = response.json()['data']['relationships']['files']['data'][0]['id']
+    return file_id
 
 
-def download_file(id_product, token):
-    id_file = get_id_file(id_product)
+def download_file(product_id, token):
+    id_file = get_id_file(product_id)
     headers = token
     file_response = requests.get(f'https://api.moltin.com/v2/files/{id_file}', headers=headers)
     file_response.raise_for_status()
@@ -52,16 +57,16 @@ def download_file(id_product, token):
         file.write(download_response.content)
 
 
-def get_cart(id_cart, token):
-    cart_url = f'https://api.moltin.com/v2/carts/{id_cart}'
+def get_cart(cart_id, token):
+    cart_url = f'https://api.moltin.com/v2/carts/{cart_id}'
     headers = token
     response = requests.get(cart_url, headers=headers)
     response.raise_for_status()
     return response.json()
 
 
-def get_cart_items(id_cart, token):
-    cart_url = f'https://api.moltin.com/v2/carts/{id_cart}/items'
+def get_cart_items(cart_id, token):
+    cart_url = f'https://api.moltin.com/v2/carts/{cart_id}/items'
     headers = token
     response = requests.get(cart_url, headers=headers)
     response.raise_for_status()
@@ -95,72 +100,72 @@ def create_file_product(token):
     file_response = requests.post('https://api.moltin.com/v2/files', json=data, headers=headers, files=files)
     file_response.raise_for_status()
     file_response.raise_for_status()
-    id_file = file_response.json()['data']['id']
-    return id_file
+    file_id = file_response.json()['data']['id']
+    return file_id
 
 
-def bind_product_image(id_product, token):
-    id_file = create_file_product()
+def bind_product_image(product_id, token):
+    file_id = create_file_product()
     headers = token
     json_data = {
         'data': [
             {
                 'type': 'file',
-                'id': id_file,
+                'id': file_id,
             },
 
             ],
              }
-    bind_response = requests.post(f'https://api.moltin.com/v2/products/{id_product}/relationships/files',
+    bind_response = requests.post(f'https://api.moltin.com/v2/products/{product_id}/relationships/files',
                                   headers=headers, json=json_data)
     bind_response.raise_for_status()
 
 
-def delete_image_relationship(id_product, token):
-    id_file = get_id_file(id_product)
+def delete_image_relationship(product_id, token):
+    file_id = get_id_file(product_id)
     headers = token
     json_data = {
         'data': [
             {
                 "type": "main_image",
-                'id': id_file,
+                'id': file_id,
             },
 
             ],
              }
-    response = requests.delete(f'https://api.moltin.com/v2/products/{id_product}/relationships/files', headers=headers,
+    response = requests.delete(f'https://api.moltin.com/v2/products/{product_id}/relationships/files', headers=headers,
                                json=json_data)
     response.raise_for_status()
 
 
-def delete_image(id_image, token):
+def delete_image(image_id, token):
     headers = token
-    response = requests.delete(f'https://api.moltin.com/v2/files/{id_image}', headers=headers)
+    response = requests.delete(f'https://api.moltin.com/v2/files/{image_id}', headers=headers)
     response.raise_for_status()
 
 
-def add_product_cart(id_cart, id_product, quantity, token):
+def add_product_cart(cart_id, product_id, quantity, token):
     headers = token
     product_data = {
         'data':
             {
-                "id": id_product,
+                "id": product_id,
                 "type": 'cart_item',
                 "quantity": quantity
             }
     }
-    add_cart_response = requests.post(f'https://api.moltin.com/v2/carts/{id_cart}/items', headers=headers,
+    add_cart_response = requests.post(f'https://api.moltin.com/v2/carts/{cart_id}/items', headers=headers,
                                       json=product_data)
     add_cart_response.raise_for_status()
 
 
-def create_product(id_product, token):
+def create_product(product_id, token):
     headers = token
-    url = f'https://api.moltin.com/v2/products/{id_product}'
+    url = f'https://api.moltin.com/v2/products/{product_id}'
     data = {
         'data':
             {
-                "id": id_product,
+                "id": product_id,
                 "type": "product",
                 "name": "Судак",
                 "slug": "sudak",
@@ -188,7 +193,7 @@ def create_product(id_product, token):
     create_response.raise_for_status()
 
 
-def create_inventory(id_product, token):
+def create_inventory(product_id, token):
     headers = token
     data = {
         'data': {
@@ -197,7 +202,7 @@ def create_inventory(id_product, token):
             'quantity': 2100,
         },
     }
-    response = requests.post(f'https://api.moltin.com/v2/inventories/{id_product}/transactions', headers=headers,
+    response = requests.post(f'https://api.moltin.com/v2/inventories/{product_id}/transactions', headers=headers,
                              json=data)
     response.raise_for_status()
 
@@ -216,9 +221,9 @@ def create_cart(chat_id, token):
     response.raise_for_status()
 
 
-def delete_cart(id_cart, token):
+def delete_cart(cart_id, token):
     headers = token
-    response = requests.delete(f'https://api.moltin.com/v2/carts/{id_cart}', headers=headers)
+    response = requests.delete(f'https://api.moltin.com/v2/carts/{cart_id}', headers=headers)
     response.raise_for_status()
 
 
