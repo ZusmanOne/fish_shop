@@ -4,13 +4,13 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
                           CallbackQueryHandler)
 import redis
 from main import (get_all_product, get_product, add_product_cart, get_cart,
-                  get_cart_items, delete_cart_item, create_customers)
+                  get_cart_items, delete_cart_item, create_customers,get_token)
 
 _database = None
 
 
 def start(bot, update):
-    serialize_products = get_all_product()
+    serialize_products = get_all_product(authorization)
     keyboard = [[InlineKeyboardButton("Корзина", callback_data='Корзина')]]
     for i in serialize_products['data']:
         keyboard.append(
@@ -26,19 +26,19 @@ def handle_menu(bot, update):
     query = update.callback_query
     if query.data == 'Корзина':
         chat_id = query.message.chat_id
-        cart_items = get_cart_items(chat_id)
+        cart_items = get_cart_items(chat_id,authorization)
         keyboard = [([InlineKeyboardButton(f"Удалить {product_item['name']}", callback_data=product_item['id'])])
                     for product_item in cart_items['data']]
         keyboard.append([InlineKeyboardButton("Назад к рыбам", callback_data='back')])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        cart = get_cart_items(chat_id)
+        cart = get_cart_items(chat_id, authorization)
         description_cart = [f"Наименование-{product['name']}\n" \
                             f"Описание-{product['description']}\n" \
                             f"Цена за 1кг: {product['meta']['display_price']['with_tax']['unit']['formatted']}\n" \
                             f"В корзине: {product['quantity']} кг на сумму:{product['meta']['display_price']['with_tax']['value']['formatted']}\n\n"
                             for product in cart['data']]
-        full_cart = get_cart(query.message.chat_id)
+        full_cart = get_cart(query.message.chat_id, authorization)
         description_cart.append(f"Общая сумма:{full_cart['data']['meta']['display_price']['with_tax']['formatted']}")
         bot.send_message(text="".join(description_cart),
                          chat_id=query.message.chat_id,
@@ -53,7 +53,7 @@ def handle_menu(bot, update):
                 [InlineKeyboardButton("Назад к рыбам", callback_data='back')],
                 [InlineKeyboardButton("Корзина", callback_data='Корзина'), ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    serializer_product = get_product(query.data)
+    serializer_product = get_product(query.data, authorization)
     id_file_product = serializer_product['data']['relationships']['files']['data'][0]['id']
     bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{id_file_product}.jpg', 'rb'),
                    caption=f"{serializer_product['data']['name']}\n"
@@ -72,19 +72,19 @@ def handle_description(bot, update):
     query_data = query.data
     chat_id = query.message.chat_id
     if query.data == 'Корзина':
-        cart_items = get_cart_items(chat_id)
+        cart_items = get_cart_items(chat_id, authorization)
         keyboard = [([InlineKeyboardButton(f"Удалить {product_item['name']}", callback_data=product_item['id']), ])
                     for product_item in cart_items['data']]
         keyboard.append([InlineKeyboardButton("Назад к рыбам", callback_data='back')])
         keyboard.append([InlineKeyboardButton("Оплатить", callback_data='pay')])
         reply_markup = InlineKeyboardMarkup(keyboard)
-        cart = get_cart_items(query.message.chat_id)
+        cart = get_cart_items(query.message.chat_id, authorization)
         description_cart = [f"Наименование-{product['name']}\n" \
                             f"Описание-{product['description']}\n" \
                             f"Цена за 1кг: {product['meta']['display_price']['with_tax']['unit']['formatted']}\n" \
                             f"В корзине: {product['quantity']} кг на сумму:{product['meta']['display_price']['with_tax']['value']['formatted']}\n\n"
                             for product in cart['data']]
-        full_cart = get_cart(query.message.chat_id)
+        full_cart = get_cart(query.message.chat_id, authorization)
         description_cart.append(f"Общая сумма:{full_cart['data']['meta']['display_price']['with_tax']['formatted']}")
         bot.send_message(text="".join(description_cart),
                          chat_id=query.message.chat_id,
@@ -93,7 +93,7 @@ def handle_description(bot, update):
                          )
         return "HANDLE_CART"
     elif query.data == 'back':
-        serialize_products = get_all_product()
+        serialize_products = get_all_product(authorization)
         keyboard = []
         for i in serialize_products['data']:
             keyboard.append(
@@ -107,7 +107,7 @@ def handle_description(bot, update):
         return "HANDLE_MENU"
     else:
         product, quantity = query_data.split('*')
-        add_product_cart(chat_id, product, int(quantity))
+        add_product_cart(chat_id, product, int(quantity),authorization)
         return "HANDLE_CART"
 
 
@@ -123,7 +123,7 @@ def handle_cart(bot, update):
                          )
         return 'WAITING_EMAIL'
     if query.data == 'back':
-        serialize_products = get_all_product()
+        serialize_products = get_all_product(authorization)
         keyboard = []
         for i in serialize_products['data']:
             keyboard.append(
@@ -136,7 +136,7 @@ def handle_cart(bot, update):
                          reply_markup=reply_markup)
         return "HANDLE_MENU"
     else:
-        delete_cart_item(chat_id, id_item)
+        delete_cart_item(chat_id, id_item, authorization)
         return 'HANDLE_CART'
 
 
@@ -144,7 +144,7 @@ def waiting_email(bot, update):
     chat_id = update.message.chat_id
     email_user = update.message.text
     update.message.reply_text(f'Ваша почта {email_user}')
-    create_customers(email_user)
+    create_customers(email_user, authorization)
     return "START"
 
 
@@ -198,6 +198,9 @@ if __name__ == '__main__':
     token = env("TG_TOKEN")
     client_id = env('CLIENT_ID')
     client_secret = env('CLIENT_SECRET')
+    CLIENT_ID = env('CLIENT_ID')
+    CLIENT_SECRET = env('CLIENT_SECRET')
+    authorization = get_token(client_id, client_secret)
     updater = Updater(token)
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
