@@ -33,10 +33,9 @@ def get_product(product_id, token):
     return response.json()
 
 
-def get_id_file(product_id,token):
+def get_id_file(product_id, token):
     headers = {'Authorization': token}
-    url = 'https://api.moltin.com/v2/products/'
-    response = requests.get(url+str(product_id), headers=headers)
+    response = requests.get(f'https://api.moltin.com/v2/products/{product_id}', headers=headers)
     response.raise_for_status()
     file_id = response.json()['data']['relationships']['files']['data'][0]['id']
     return file_id
@@ -49,6 +48,7 @@ def download_file(product_id, token):
     file_response.raise_for_status()
     url_image = file_response.json()['data']['link']['href']
     download_response = requests.get(url_image)
+    download_response.raise_for_status()
     with open(f'fish/{id_file}.jpg', 'wb') as file:
         file.write(download_response.content)
 
@@ -95,7 +95,6 @@ def create_file_product(token):
 
     file_response = requests.post('https://api.moltin.com/v2/files', json=data, headers=headers, files=files)
     file_response.raise_for_status()
-    file_response.raise_for_status()
     file_id = file_response.json()['data']['id']
     return file_id
 
@@ -119,17 +118,16 @@ def bind_product_image(product_id, token):
 def delete_image_relationship(product_id, token):
     file_id = get_id_file(product_id)
     headers = {'Authorization': token}
-    json_data = {
+    product_data = {
         'data': [
             {
                 "type": "main_image",
                 'id': file_id,
             },
-
-            ],
-             }
+        ],
+    }
     response = requests.delete(f'https://api.moltin.com/v2/products/{product_id}/relationships/files', headers=headers,
-                               json=json_data)
+                               json=product_data)
     response.raise_for_status()
 
 

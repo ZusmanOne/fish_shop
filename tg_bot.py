@@ -53,10 +53,9 @@ def handle_menu(context, update):
     serializer_product = get_product(query.data, context.bot_data['valid_token'])
     file_product_id = serializer_product['data']['relationships']['files']['data'][0]['id']
     context.bot.send_photo(chat_id=query.message.chat_id, photo=open(f'fish/{file_product_id}.jpg', 'rb'),
-                           caption=
-                           f"""{serializer_product['data']['name']}
-   {serializer_product['data']['description']}
-   {serializer_product['data']['price'][0]['amount'] / 10}$ - за хвост""",
+                           caption=f"""{serializer_product['data']['name']}
+                                       {serializer_product['data']['description']}
+                                       {serializer_product['data']['price'][0]['amount'] / 10}$ - за хвост""",
                            reply_markup=reply_markup)
     context.bot.delete_message(chat_id=query.message.chat_id,
                                message_id=update.callback_query.message.message_id)
