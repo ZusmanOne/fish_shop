@@ -4,12 +4,12 @@ import time
 
 
 def get_token(client_id, secret_id):
-    data = {
+    client_data = {
         'client_id': client_id,
         'client_secret': secret_id,
         'grant_type': 'client_credentials',
     }
-    token_response = requests.post('https://api.moltin.com/oauth/access_token', data=data)
+    token_response = requests.post('https://api.moltin.com/oauth/access_token', data=client_data)
     token_response.raise_for_status()
     access_token = token_response.json()['access_token']
     authorization_data = {
@@ -83,24 +83,18 @@ def get_all_files(token):
 
 def create_file_product(token):
     headers = {'Authorization': token}
-    data = {
-        'data':
-            {
-                'file_name': '123'
-            }
-    }
-    files = {
-        'file_location': (None, 'https://fermaspb.ru/uploads/gallery/15549806505caf1f2a825bb.jpg'),
+    file = {
+        'file_location': (None, 'https://moretrade.ru/upload/iblock/13c/chiliyskaya_semga_img.jpg'),
     }
 
-    file_response = requests.post('https://api.moltin.com/v2/files', json=data, headers=headers, files=files)
+    file_response = requests.post('https://api.moltin.com/v2/files', headers=headers, files=file)
     file_response.raise_for_status()
     file_id = file_response.json()['data']['id']
     return file_id
 
 
 def bind_product_image(product_id, token):
-    file_id = create_file_product()
+    file_id = create_file_product(token)
     headers = {'Authorization': token}
     product_data = {
         'data': [
@@ -154,7 +148,7 @@ def add_product_cart(cart_id, product_id, quantity, token):
 
 def create_inventory(product_id, token):
     headers = {'Authorization': token}
-    data = {
+    inventory_data = {
         'data': {
             'type': 'stock-transaction',
             'action': 'increment',
@@ -162,13 +156,13 @@ def create_inventory(product_id, token):
         },
     }
     response = requests.post(f'https://api.moltin.com/v2/inventories/{product_id}/transactions', headers=headers,
-                             json=data)
+                             json=inventory_data)
     response.raise_for_status()
 
 
 def create_cart(chat_id, token):
     headers = {'Authorization': token}
-    data = {
+    cart_data = {
         'data':
             {
                 "name": "Fish Cart",
@@ -176,7 +170,7 @@ def create_cart(chat_id, token):
                 "description": "For Fish",
             }
     }
-    response = requests.post('https://api.moltin.com/v2/carts', headers=headers, json=data)
+    response = requests.post('https://api.moltin.com/v2/carts', headers=headers, json=cart_data)
     response.raise_for_status()
 
 
@@ -188,14 +182,14 @@ def delete_cart(cart_id, token):
 
 def create_customers(email, token):
     headers = {'Authorization': token}
-    json_data = {
+    customer_data = {
         'data': {
             'type': 'customer',
             'name': email,
             'email': email,
         },
     }
-    response = requests.post('https://api.moltin.com/v2/customers', headers=headers, json=json_data)
+    response = requests.post('https://api.moltin.com/v2/customers', headers=headers, json=customer_data)
     response.raise_for_status()
 
 
@@ -205,5 +199,4 @@ if __name__ == '__main__':
     env.read_env()
     client_id = env('CLIENT_ID')
     client_secret = env('CLIENT_SECRET')
-
 
